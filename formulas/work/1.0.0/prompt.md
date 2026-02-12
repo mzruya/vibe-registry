@@ -50,14 +50,16 @@ Or `work -d my-feature`. If the branch still exists on origin, confirm first (PR
 - `work list` shows age (human-readable like "3 days ago"), and fetches PR info from GitHub using `gh` if available
 - `work prune` fetches from origin first, then removes worktrees whose branches are gone from remote
 - Before deleting, check for uncommitted changes or unpushed commits - ask for confirmation if found
-- By default, `work <branch>` should return immediately without blocking:
+- By default, `work <branch>` should return immediately (non-blocking):
   - Skip `git fetch` (use existing local refs - slightly stale is fine for speed)
-  - Spawn `git worktree add` without waiting for completion (use a shell script wrapper so it can try `-b` flag first, then retry without `-b` if branch exists)
-  - The CLI prints the cd command and exits immediately
-  - Do NOT create `.claude/settings.local.json` in async mode (worktree may not be ready yet)
+  - Use `git worktree add --no-checkout` which creates the worktree structure instantly without checking out files
+  - Create `.claude/settings.local.json` (the directory exists now since worktree add completed)
+  - Print the cd command
+  - Spawn `git checkout HEAD` in background (this populates files while user is already in the directory)
+  - Print a message like "Checking out files in background..."
 - Add a `--wait` flag (`-w`) for blocking mode when needed:
   - Run `git fetch origin` before creating the worktree
-  - Wait for `git worktree add` to complete before returning
+  - Use regular `git worktree add` (with checkout) and wait for completion
   - Create `.claude/settings.local.json` with the branch name for Claude Code session naming
   - Useful for scripting or when you need to chain commands
 - To check if a worktree already exists, check for `.git` file/directory inside it (not just the directory existing)

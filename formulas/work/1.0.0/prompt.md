@@ -51,8 +51,14 @@ Or `work -d my-feature`. If the branch still exists on origin, confirm first (PR
 - `work prune` fetches from origin first, then removes worktrees whose branches are gone from remote
 - Before deleting, check for uncommitted changes or unpushed commits - ask for confirmation if found
 - Create `.claude/settings.local.json` with the branch name for Claude Code session naming, and exclude it from git so it doesn't block pruning
-- Git worktree create and delete commands should run in a non-blocking way by default (spawn the process and don't wait for completion) so the CLI returns immediately
-- Add a `--wait` flag to make commands block and wait for git operations to complete (useful for scripting or when you need to chain commands)
+- By default, `work <branch>` should return immediately without blocking:
+  - Skip `git fetch` (use existing local refs - slightly stale is fine for speed)
+  - Spawn `git worktree add` without waiting for completion
+  - The CLI prints the cd command and exits immediately
+- Add a `--wait` flag (`-w`) for blocking mode when needed:
+  - Run `git fetch origin` before creating the worktree
+  - Wait for `git worktree add` to complete before returning
+  - Useful for scripting or when you need to chain commands
 
 ## Technical Notes
 

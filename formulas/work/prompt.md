@@ -17,13 +17,17 @@ Create a new worktree or navigate to an existing one.
 1. If already inside the target worktree, print a message and exit
 2. If the worktree directory exists, print its path so the user can `cd` to it
 3. If it doesn't exist:
-   a. Run `git fetch origin main` from the main repo
-   b. Create the worktrees directory if needed
-   c. If the branch already exists locally: `git worktree add --no-checkout <path> <branch>`
-   d. If the branch is new: `git worktree add --no-checkout -b <branch> <path> origin/main`
-   e. Create `.claude/settings.local.json` in the worktree with `{"name": "<branch>"}`
-   f. Run `git checkout HEAD` in the new worktree
-   g. Print the worktree path
+   a. Create the worktrees directory if needed
+   b. If the branch already exists locally: `git worktree add --no-checkout <path> <branch>`
+   c. If the branch is new: `git worktree add --no-checkout -b <branch> <path> HEAD`
+   d. **Immediately print the worktree path** so the user can `cd` right away
+   e. **In a background process** (fork/spawn and detach):
+      - Run `git fetch origin main` from the main repo
+      - Create `.claude/settings.local.json` in the worktree with `{"name": "<branch>"}`
+      - Run `git checkout HEAD` in the new worktree
+      - Write a `.work-ready` marker file when complete
+
+The key insight: worktree creation with `--no-checkout` is instant. The slow parts (fetch, checkout) happen in the background so the user can immediately `cd` into the directory and start working. By the time they run their first command, the checkout is usually done.
 
 Since a CLI can't change the caller's directory, print a line like:
 ```
@@ -57,24 +61,28 @@ Worktrees in ~/code/myproject-worktrees:
 
 ### `work delete <branch>` (also `work -d <branch>`)
 
-Delete a worktree and its local branch.
+Delete a worktree and its local branch. **Runs in the background** so it returns immediately.
 
 1. If no branch specified and currently inside a worktree, infer the branch from the current directory
-2. If the branch still exists on remote (`git ls-remote --heads origin <branch>`), warn the user and ask for confirmation
-3. If the branch is gone from remote, proceed without asking (PR was likely merged)
-4. Run `git worktree remove <path> --force` and `git branch -D <branch>`
+2. If the user is currently inside the worktree being deleted, warn them to `cd` out first and exit
+3. If the branch still exists on remote (`git ls-remote --heads origin <branch>`), warn the user and ask for confirmation (this check is fast, do it synchronously)
+4. Print "Deleting worktree in background..." and return immediately
+5. **In a background process** (fork/spawn and detach):
+   - Run `git worktree remove <path> --force`
+   - Run `git branch -D <branch>`
 
 ### `work prune`
 
-Automatically clean up worktrees whose branches have been merged.
+Automatically clean up worktrees whose branches have been merged. **Runs deletions in the background.**
 
 1. Run `git fetch origin --prune`
 2. For each worktree, check if the branch still exists on remote
-3. If the branch is gone from remote:
-   - Check for local changes (uncommitted files via `git status --porcelain`, or unpushed commits via `git log origin/<branch>..HEAD`)
-   - If there are local changes, ask for confirmation before deleting
-   - If clean, delete automatically
-4. Print a summary of how many worktrees were pruned/skipped
+3. Collect list of worktrees to delete:
+   - If the branch is gone from remote and has no local changes: mark for auto-delete
+   - If the branch is gone but has local changes: ask for confirmation
+4. Print summary of what will be deleted
+5. **Spawn background deletions** for all confirmed worktrees
+6. Return immediately while deletions happen in background
 
 ### `work` (no arguments)
 
@@ -86,6 +94,7 @@ Print usage help.
 - Use `clap` v4 with derive macros for CLI parsing
 - Use `colored` crate for terminal colors
 - Shell out to `git` and `gh` commands using `std::process::Command` (do NOT use libgit2)
+- **For background operations**: Use `std::process::Command` with `.spawn()` and immediately drop the `Child` handle, OR use the `daemonize` crate, OR double-fork pattern. The key is the CLI must exit immediately while git operations continue.
 - Parse command output as needed (e.g., `git worktree list --porcelain`, `gh pr list --json`)
 - Use `serde` and `serde_json` for parsing `gh` JSON output
 - Use `chrono` for time-ago formatting from file modification timestamps
@@ -96,6 +105,27 @@ Print usage help.
 - Handle errors gracefully with helpful messages
 - The code should compile with `cargo build --release`
 
+## Background process pattern
+
+For background operations, use this pattern:
+
+```rust
+use std::process::{Command, Stdio};
+
+// Spawn detached process that continues after parent exits
+let mut child = Command::new("git")
+    .args(["worktree", "remove", &path, "--force"])
+    .stdin(Stdio::null())
+    .stdout(Stdio::null())
+    .stderr(Stdio::null())
+    .spawn()?;
+
+// Don't wait for it - just let it run
+drop(child);
+```
+
+Or create a helper script/self-invocation pattern where the CLI re-invokes itself with a hidden `--background` flag.
+
 ## Edge cases to handle
 
 - Not in a git repository: print error and exit
@@ -103,3 +133,4 @@ Print usage help.
 - `gh` not installed: skip PR info gracefully, don't crash
 - Branch name inference when user is inside a worktree and runs `work delete` with no args
 - User is currently inside a worktree being deleted: warn them to cd out first
+- Background process failures: write errors to a log file in the worktrees directory

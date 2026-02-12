@@ -2,23 +2,23 @@
   "formulas": [
     {
       "name": "hello",
-      "version": "1.0.0",
-      "description": "A friendly hello world CLI that greets users by name"
+      "description": "A friendly hello world CLI that greets users by name",
+      "versions": ["1.0.0"]
     },
     {
       "name": "countdown",
-      "version": "1.0.0",
-      "description": "A terminal countdown timer with colorful display"
+      "description": "A terminal countdown timer with colorful display",
+      "versions": ["1.0.0"]
     },
     {
       "name": "fizzbuzz",
-      "version": "1.0.0",
-      "description": "A colorful FizzBuzz CLI with customizable ranges and rules"
+      "description": "A colorful FizzBuzz CLI with customizable ranges and rules",
+      "versions": ["1.0.0"]
     },
     {
       "name": "work",
-      "version": "1.0.0",
-      "description": "Git worktree manager for parallel branch development with PR status"
+      "description": "Git worktree manager for parallel branch development with PR status",
+      "versions": ["1.0.0"]
     }
   ]
 }

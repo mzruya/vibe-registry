@@ -1,0 +1,6 @@
+[package]
+name = "hello"
+version = "1.0.0"
+description = "A friendly hello world CLI that greets users by name"
+license = "MIT"
+binaries = ["hello"]

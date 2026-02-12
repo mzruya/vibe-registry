@@ -1,6 +1,11 @@
 {
   "formulas": [
     {
+      "name": "hello",
+      "version": "1.0.0",
+      "description": "A friendly hello world CLI that greets users by name"
+    },
+    {
       "name": "countdown",
       "version": "1.0.0",
       "description": "A terminal countdown timer with colorful display"
@@ -9,11 +14,6 @@
       "name": "fizzbuzz",
       "version": "1.0.0",
       "description": "A colorful FizzBuzz CLI with customizable ranges and rules"
-    },
-    {
-      "name": "hello",
-      "version": "1.0.0",
-      "description": "A friendly hello world CLI that greets users by name"
     },
     {
       "name": "work",

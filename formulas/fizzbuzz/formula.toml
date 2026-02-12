@@ -1,6 +1,0 @@
-[package]
-name = "fizzbuzz"
-version = "1.0.0"
-description = "A colorful FizzBuzz CLI with customizable ranges and rules"
-license = "MIT"
-binaries = ["fizzbuzz"]

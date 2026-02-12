@@ -1,0 +1,24 @@
+{
+  "formulas": [
+    {
+      "name": "countdown",
+      "version": "1.0.0",
+      "description": "A terminal countdown timer with colorful display"
+    },
+    {
+      "name": "fizzbuzz",
+      "version": "1.0.0",
+      "description": "A colorful FizzBuzz CLI with customizable ranges and rules"
+    },
+    {
+      "name": "hello",
+      "version": "1.0.0",
+      "description": "A friendly hello world CLI that greets users by name"
+    },
+    {
+      "name": "work",
+      "version": "1.0.0",
+      "description": "Git worktree manager for parallel branch development with PR status"
+    }
+  ]
+}

@@ -67,9 +67,16 @@ Or `work -d my-feature`. If the branch still exists on origin, confirm first (PR
 ## Technical Notes
 
 - Language: Bash (#!/bin/bash)
-- Use ANSI escape codes for colored output (green for success, yellow for warnings, red for errors)
-- Use `read -p` for confirmations
+- **Script must be sourced, not executed directly** - this allows cd to affect the parent shell
+- Add a comment at the top explaining the user should add this to their shell config:
+  ```bash
+  work() { source /path/to/work "$@"; }
+  ```
+- **Do NOT use `set -e`** - when sourced, it would affect the parent shell
+- Use `return` instead of `exit`, with fallback for direct execution: `return 1 2>/dev/null || exit 1`
+- Use ANSI escape codes for colored output (green for success, yellow for warnings, red for errors, dim for secondary info)
+- Use `read -r` for confirmations
 - Handle missing `gh` gracefully - just skip PR info (check with `command -v gh`)
 - The script must be named `work` (no .sh extension)
-- Replace `/` with `-` in branch names for directory names (e.g., `feature/foo` becomes `feature-foo`)
 - For human-readable time: calculate seconds since modification, convert to "X minutes/hours/days/weeks ago"
+- Use `nohup git checkout HEAD > /dev/null 2>&1 & disown` to spawn background checkout

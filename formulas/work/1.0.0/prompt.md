@@ -1,6 +1,6 @@
 # work - Git Worktree Manager
 
-A CLI tool that makes working with multiple git branches in parallel effortless. Instead of stashing changes or juggling commits, each branch gets its own directory.
+A bash script that makes working with multiple git branches in parallel effortless. Instead of stashing changes or juggling commits, each branch gets its own directory.
 
 ## The Problem
 
@@ -14,7 +14,7 @@ $ work my-feature
 Created worktree at ~/code/myproject-worktrees/my-feature
 cd ~/code/myproject-worktrees/my-feature
 ```
-The user runs this, copies the cd command (or wraps `work` in a shell function), and they're in a fresh checkout ready to code.
+The user copies the cd command (or wraps `work` in a shell function to auto-cd).
 
 **Seeing what's in flight:**
 ```
@@ -46,28 +46,29 @@ Or `work -d my-feature`. If the branch still exists on origin, confirm first (PR
 
 - Worktrees live in `<repo>-worktrees/<branch>/` as a sibling to the main repo
 - `work <branch>` creates a new worktree from origin/main, or navigates to an existing one
-- Since CLIs can't change the parent shell's directory, print a `cd` command the user can execute
+- Since scripts can't change the parent shell's directory, print a `cd` command the user can execute
 - `work list` shows age (human-readable like "3 days ago"), and fetches PR info from GitHub using `gh` if available
 - `work prune` fetches from origin first, then removes worktrees whose branches are gone from remote
 - Before deleting, check for uncommitted changes or unpushed commits - ask for confirmation if found
 - By default, `work <branch>` should return immediately (non-blocking):
   - Skip `git fetch` (use existing local refs - slightly stale is fine for speed)
   - Use `git worktree add --no-checkout` which creates the worktree structure instantly without checking out files
-  - Create `.claude/settings.local.json` (the directory exists now since worktree add completed)
+  - Create `.claude/settings.local.json` with the branch name for Claude Code session naming
   - Print the cd command
-  - Spawn `git checkout HEAD` in background (this populates files while user is already in the directory)
+  - Spawn `git checkout HEAD` in background using `&` (this populates files while user is already in the directory)
   - Print a message like "Checking out files in background..."
-- Add a `--wait` flag (`-w`) for blocking mode when needed:
+- Add a `--wait` or `-w` flag for blocking mode when needed:
   - Run `git fetch origin` before creating the worktree
   - Use regular `git worktree add` (with checkout) and wait for completion
-  - Create `.claude/settings.local.json` with the branch name for Claude Code session naming
   - Useful for scripting or when you need to chain commands
 - To check if a worktree already exists, check for `.git` file/directory inside it (not just the directory existing)
 
 ## Technical Notes
 
-- Language: Rust
-- Use `clap` for CLI parsing, `colored` for terminal output, `dialoguer` for confirmations
-- Shell out to `git` and `gh` commands (don't use libgit2)
-- Handle missing `gh` gracefully - just skip PR info
-- The binary must be named `work`
+- Language: Bash (#!/bin/bash)
+- Use ANSI escape codes for colored output (green for success, yellow for warnings, red for errors)
+- Use `read -p` for confirmations
+- Handle missing `gh` gracefully - just skip PR info (check with `command -v gh`)
+- The script must be named `work` (no .sh extension)
+- Replace `/` with `-` in branch names for directory names (e.g., `feature/foo` becomes `feature-foo`)
+- For human-readable time: calculate seconds since modification, convert to "X minutes/hours/days/weeks ago"

@@ -79,7 +79,7 @@ Or `work -d my-feature`. If the branch still exists on origin, confirm first (PR
 
 The `work init` command enables the CLI to cd the user into worktrees. Here's how it works:
 
-1. **Detect the shell** - check `$SHELL` env var for bash, zsh, or fish
+1. **Detect the shell** - check `$SHELL` env var for bash, zsh, fish, or nu
 2. **Output shell-specific wrapper** - a function that:
    - Calls the actual `work` binary
    - Captures output and parses for `__CD__:/path` directive
@@ -111,10 +111,29 @@ function work
 end
 ```
 
+**Example output for `work init --shell nu`:**
+```nu
+# Add to ~/.config/nushell/config.nu
+def --env work [...args: string] {
+  let output = (^work ...$args | complete)
+  let lines = ($output.stdout | lines)
+  let cd_line = ($lines | where {|l| $l starts-with "__CD__:"} | first | default "")
+  let cd_path = ($cd_line | str replace "__CD__:" "")
+
+  # Print everything except the __CD__ line
+  $lines | where {|l| not ($l starts-with "__CD__:")} | each {|l| print $l}
+
+  # cd if path provided
+  if ($cd_path | is-not-empty) {
+    cd $cd_path
+  }
+}
+```
+
 The `init` command should:
 - Auto-detect shell if `--shell` not provided
 - Print instructions for adding to shell config
-- Support `--shell bash`, `--shell zsh`, `--shell fish`
+- Support `--shell bash`, `--shell zsh`, `--shell fish`, `--shell nu`
 
 ## Technical Notes
 

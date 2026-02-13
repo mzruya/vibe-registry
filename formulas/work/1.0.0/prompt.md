@@ -90,7 +90,7 @@ The `work init` command enables the CLI to cd the user into worktrees. Here's ho
 ```bash
 work() {
   local output
-  output=$(__work "$@")
+  output=$(command work "$@")  # 'command' bypasses the function, calls the binary
   local exit_code=$?
   local cd_path=$(echo "$output" | grep "^__CD__:" | cut -d: -f2)
   echo "$output" | grep -v "^__CD__:"
@@ -102,7 +102,7 @@ work() {
 **Example output for `work init --shell fish`:**
 ```fish
 function work
-  set -l output (__work $argv)
+  set -l output (command work $argv)  # 'command' bypasses the function, calls the binary
   set -l exit_code $status
   set -l cd_path (echo $output | grep "^__CD__:" | cut -d: -f2)
   echo $output | grep -v "^__CD__:"
@@ -122,7 +122,7 @@ The `init` command should:
 - Use `clap` for CLI parsing, `colored` for terminal output, `dialoguer` for confirmations
 - Shell out to `git` and `gh` commands (don't use libgit2)
 - Handle missing `gh` gracefully - just skip PR info
-- The binary must be named `__work` (with double underscore) so the shell wrapper can be named `work`
+- The binary is named `work` - the shell wrapper uses `command work` to call the binary (bypasses the function)
 - Output `__CD__:/path/to/worktree` on its own line when the user should be cd'd somewhere
 - For background processes, use `std::process::Command` with `.spawn()` and don't wait for it
 - For human-readable time: calculate seconds since modification, convert to "X minutes/hours/days/weeks ago"

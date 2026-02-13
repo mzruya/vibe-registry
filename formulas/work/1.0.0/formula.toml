@@ -3,4 +3,4 @@ name = "work"
 version = "1.0.0"
 description = "Git worktree manager for parallel branch development with PR status"
 license = "MIT"
-binaries = ["work"]
+binaries = ["__work"]

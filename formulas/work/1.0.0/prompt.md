@@ -25,6 +25,8 @@ Worktrees live as siblings to the main repo with a `-worktrees` suffix:
 
 Creates a new worktree and cd's into it. If the worktree already exists, just cd's there.
 
+**Critical UX requirement: This command MUST return instantly (under 1 second) regardless of repository size.** The user should be in their new directory immediately. Any slow operations like fetching or populating files must happen asynchronously after the prompt returns. This is the entire point of the tool - fast context switching.
+
 **Creating a new worktree:**
 ```
 ~/code/myproject $ work my-feature
@@ -33,6 +35,8 @@ Checking out files in background...
 ~/code/myproject-worktrees/my-feature $
 ```
 
+The user is now in the worktree directory. Files appear in the background over the next few seconds while they can already start working.
+
 **Switching to existing worktree:**
 ```
 ~/code/myproject $ work my-feature
@@ -40,7 +44,7 @@ Switching to existing worktree: my-feature
 ~/code/myproject-worktrees/my-feature $
 ```
 
-The command returns instantly. Files are checked out in the background while you're already in the directory. New branches are created from origin/main.
+New branches are created from origin/main (using whatever is locally available - no fetching).
 
 "Created worktree" and "Switching to existing worktree" messages are green.
 "Checking out files in background..." is dimmed/gray.
@@ -143,7 +147,7 @@ Must support: bash, zsh, fish, and nushell. Auto-detect from $SHELL if --shell n
 
 ### `work --wait <branch>` or `work -w <branch>`
 
-Blocking mode - fetches from origin first and waits for checkout to complete before returning. Useful for scripts or when you need files immediately.
+Blocking mode - the opposite of the default instant behavior. Fetches from origin first, waits for all files to be checked out, then returns. Takes 10-30+ seconds on large repos. Useful for scripts or CI where you need files immediately.
 
 ```
 ~/code/myproject $ work --wait my-feature
@@ -151,6 +155,8 @@ Fetching from origin...
 Created worktree at ~/code/myproject-worktrees/my-feature
 ~/code/myproject-worktrees/my-feature $
 ```
+
+This is intentionally slow because it ensures everything is ready before returning.
 
 ## Additional Behavior
 

@@ -12,9 +12,10 @@ When you're working on a feature and need to quickly fix a bug on another branch
 ```
 $ work my-feature
 Created worktree at ~/code/myproject-worktrees/my-feature
-cd ~/code/myproject-worktrees/my-feature
+Checking out files in background...
+~/code/myproject-worktrees/my-feature $
 ```
-The user copies the cd command (or wraps `work` in a shell function to auto-cd).
+The script automatically cd's into the new worktree while files populate in the background.
 
 **Seeing what's in flight:**
 ```
@@ -46,7 +47,7 @@ Or `work -d my-feature`. If the branch still exists on origin, confirm first (PR
 
 - Worktrees live in `<repo>-worktrees/<branch>/` as a sibling to the main repo
 - `work <branch>` creates a new worktree from origin/main, or navigates to an existing one
-- Since scripts can't change the parent shell's directory, print a `cd` command the user can execute
+- The script cd's directly into the worktree (user should source it or use it as a shell function)
 - `work list` shows age (human-readable like "3 days ago"), and fetches PR info from GitHub using `gh` if available
 - `work prune` fetches from origin first, then removes worktrees whose branches are gone from remote
 - Before deleting, check for uncommitted changes or unpushed commits - ask for confirmation if found
@@ -54,7 +55,7 @@ Or `work -d my-feature`. If the branch still exists on origin, confirm first (PR
   - Skip `git fetch` (use existing local refs - slightly stale is fine for speed)
   - Use `git worktree add --no-checkout` which creates the worktree structure instantly without checking out files
   - Create `.claude/settings.local.json` with the branch name for Claude Code session naming
-  - Print the cd command
+  - cd into the worktree
   - Spawn `git checkout HEAD` in background using `&` (this populates files while user is already in the directory)
   - Print a message like "Checking out files in background..."
 - Add a `--wait` or `-w` flag for blocking mode when needed:

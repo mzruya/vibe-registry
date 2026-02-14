@@ -92,6 +92,13 @@ Never deletes worktrees with uncommitted changes or unpushed commits without ask
 
 Deletes a specific worktree.
 
+**Critical UX requirement: This command MUST return instantly (under 1 second) regardless of repository size.** The user should be back at their prompt immediately. Any slow operations like removing files must happen asynchronously after the prompt returns.
+
+**Behavior depends on current location:**
+- If inside the worktree being deleted: cd to the main repo first, then delete the worktree
+- If inside a different worktree or the main repo: delete without changing location
+- If not in a git repository: show "Error: Not in a git repository" (red)
+
 **Clean deletion (branch already merged):**
 ```
 ~/code/myproject $ work -d bugfix-login
@@ -117,6 +124,26 @@ Delete anyway? [y/N]
 - "Deleted:" is green
 - "Aborted." is dimmed/gray
 - Default for confirmation prompts is always No
+
+### `work home`
+
+Navigate back to the main repository directory.
+
+**From a worktree:**
+```
+~/code/myproject-worktrees/my-feature $ work home
+~/code/myproject $
+```
+
+**Already in the main repo:**
+```
+~/code/myproject $ work home
+~/code/myproject $
+```
+
+- If inside a worktree: cd to the main repo
+- If already in the main repo: stay (no-op, no output)
+- If not in a git repository: show "Error: Not in a git repository" (red)
 
 ### `work init`
 
@@ -157,6 +184,15 @@ Created worktree at ~/code/myproject-worktrees/my-feature
 ```
 
 This is intentionally slow because it ensures everything is ready before returning.
+
+## Aliases
+
+work should support the following aliases:
+
+- `work ls` → `work list`
+- `work show` → `work list`
+- `work remove <branch>` → `work delete <branch>`
+- `work rm <branch>` → `work delete <branch>`
 
 ## Additional Behavior
 

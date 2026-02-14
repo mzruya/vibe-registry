@@ -125,6 +125,26 @@ Delete anyway? [y/N]
 - "Aborted." is dimmed/gray
 - Default for confirmation prompts is always No
 
+### `work home`
+
+Navigate back to the main repository directory.
+
+**From a worktree:**
+```
+~/code/myproject-worktrees/my-feature $ work home
+~/code/myproject $
+```
+
+**Already in the main repo:**
+```
+~/code/myproject $ work home
+~/code/myproject $
+```
+
+- If inside a worktree: cd to the main repo
+- If already in the main repo: stay (no-op, no output)
+- If not in a git repository: show "Error: Not in a git repository" (red)
+
 ### `work init`
 
 Sets up shell integration so the command can cd into worktrees.

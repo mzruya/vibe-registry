@@ -185,6 +185,15 @@ Created worktree at ~/code/myproject-worktrees/my-feature
 
 This is intentionally slow because it ensures everything is ready before returning.
 
+## Aliases
+
+work should support the following aliases:
+
+- `work ls` → `work list`
+- `work show` → `work list`
+- `work remove <branch>` → `work delete <branch>`
+- `work rm <branch>` → `work delete <branch>`
+
 ## Additional Behavior
 
 - A worktree "exists" if it has a `.git` file or directory inside it

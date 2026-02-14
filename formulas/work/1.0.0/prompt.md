@@ -92,6 +92,13 @@ Never deletes worktrees with uncommitted changes or unpushed commits without ask
 
 Deletes a specific worktree.
 
+**Critical UX requirement: This command MUST return instantly (under 1 second) regardless of repository size.** The user should be back at their prompt immediately. Any slow operations like removing files must happen asynchronously after the prompt returns.
+
+**Behavior depends on current location:**
+- If inside the worktree being deleted: cd to the main repo first, then delete the worktree
+- If inside a different worktree or the main repo: delete without changing location
+- If not in a git repository: show "Error: Not in a git repository" (red)
+
 **Clean deletion (branch already merged):**
 ```
 ~/code/myproject $ work -d bugfix-login

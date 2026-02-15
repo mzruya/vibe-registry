@@ -1,6 +1,12 @@
 [package]
 name = "work"
 version = "1.0.0"
-description = "Nushell git worktree manager with GitHub PR status, CI check counts, and interactive fuzzy switching"
+description = "Git worktree manager with GitHub PR status, CI check counts, and interactive fuzzy switching"
 license = "MIT"
-scripts = ["work.nu"]
+
+# Shell-specific scripts - installer picks based on user's shell
+[scripts]
+bash = "work.bash"
+zsh = "work.zsh"
+fish = "work.fish"
+nu = "work.nu"

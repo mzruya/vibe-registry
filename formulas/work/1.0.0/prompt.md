@@ -1,56 +1,107 @@
-# Work - Git Worktree Manager
+# Work - Multi-Project Git Worktree Manager
 
-Generate two shell scripts that manage git worktrees for parallel branch development with GitHub PR status integration:
+Generate a Nushell script (`work.nu`) that manages git worktrees across multiple projects with GitHub PR status integration.
 
-1. **`work.sh`** - A POSIX-compatible script for bash/zsh
-2. **`work.nu`** - A Nushell script using idiomatic nushell patterns
-
-Both scripts must be sourceable to allow directory changes in the calling shell.
+The script must be sourceable to allow directory changes in the calling shell.
 
 ## Overview
 
-The tool enables working on multiple branches simultaneously by creating isolated worktrees in a sibling directory (`<repo>-worktrees/`). Each worktree is a full working copy of the repository on a specific branch.
+The tool enables working on multiple branches simultaneously across multiple git repositories. Projects are registered in a central config, and all worktrees are stored in a centralized location organized by project.
 
 ## Commands
 
-### `work` (no arguments)
-Opens an interactive fuzzy picker to switch between existing worktrees, displaying the same rich information as `work list`. Changes to the selected worktree directory.
+| Command | Description |
+|---------|-------------|
+| `work` | Interactive project/worktree switcher with fuzzy search |
+| `work <branch>` | Create worktree and cd into it (auto-registers project) |
+| `work ls` | List worktrees for current project with PR/build status |
+| `work rm [branch]` | Delete worktree (current worktree if no arg) |
+| `work prune` | Clean up merged worktrees across ALL projects |
+| `work add [path]` | Register a git repository as a project |
 
-### `work go <branch>`
-Creates a new worktree for the branch if it doesn't exist and changes to it.
-- New worktrees are created from `origin/main`
-- Auto-configures Claude Code session name (`.claude/settings.local.json`)
+## Storage Layout
 
-### `work list` or `work ls`
-Lists all worktrees with rich status information:
-- Branch name (highlighted green if current)
+```
+~/.config/work/
+└── projects.nuon              # List of registered projects [{name, path}]
+
+~/.work/worktrees/
+├── web/                       # Project name (from directory basename)
+│   ├── mz-feature-1/          # Full git worktree checkout
+│   └── mz-bugfix/
+└── zenpayroll/
+    └── mz-other-feature/
+```
+
+## Command Behavior
+
+### `work` (Interactive Switcher)
+
+Two-level drill-down navigation:
+
+1. **Outside a project**: Shows project list first
+   - Displays: project name, worktree count, path
+   - Select a project → enters worktree view
+
+2. **Inside a project**: Shows worktree list first
+   - Displays: branch name, age, PR number, PR state (open/merged/closed), build status (✓/✗/○)
+   - Press ESC → goes back to project list
+   - "main" option always present to return to main repo
+
+### `work <branch>` (Create Worktree)
+
+1. If not in a registered project, auto-registers current git repo
+2. Fetches `origin/main`
+3. Creates worktree:
+   - If branch exists locally → uses existing branch
+   - If branch doesn't exist → creates from `origin/main`
+4. Sets up `.claude/settings.local.json` with session name
+5. Runs `git checkout` in background for faster startup
+6. cd's into the worktree
+
+### `work ls` (List Worktrees)
+
+Non-interactive list showing:
+- Branch name
 - Age (e.g., "2 days ago")
-- Current worktree marker (`<- current`)
-- PR number, state, and URL
-- CI status with check counts (e.g., `3/5`)
+- PR number and state (from GitHub CLI)
+- Build status with check counts (e.g., "✓ 5/5")
+- Current worktree marker
 
-### `work switch` or `work sw`
-Interactive fuzzy picker showing all worktrees with the same rich information as `work list` (branch name, age, current marker, PR status, CI checks). Type to filter, press Enter to select. Changes to selected directory.
+### `work rm [branch]` (Delete Worktree)
 
-### `work path <branch>`
-Prints the path where a worktree for the given branch would be located. Does not create the worktree or check if it exists. Useful for scripting.
+- If no branch specified and inside a worktree, deletes current worktree
+- Warns if branch still exists on remote (unmerged PR)
+- Auto cd's to main repo if deleting current worktree
+- Removes both worktree directory and local branch
 
-### `work delete <branch>`
-Deletes a worktree and its local branch.
-- If no branch specified and currently in a worktree, deletes the current one
-- Warns if branch still exists on remote (PR may not be merged)
-- Returns to main repo if deleting current worktree
+### `work prune` (Cleanup)
 
-### `work prune`
-Cleans up worktrees whose branches have been merged (no longer on origin).
-- Fetches from origin first to ensure up-to-date info
-- Checks for local changes before deleting
-- Prompts for confirmation if worktree has uncommitted/unpushed changes
+Operates across ALL registered projects:
+
+1. For each project with worktrees:
+   - Fetches from origin (updates remote branch info)
+   - For each worktree:
+     - If branch no longer exists on remote → considered merged
+     - If has local uncommitted/unpushed changes → skip with warning
+     - Otherwise → remove worktree and local branch
+2. Shows summary: "Pruned N worktree(s) across M project(s)"
+
+### `work add [path]` (Register Project)
+
+- Registers git repo at path (defaults to current directory)
+- Project name derived from directory basename
+- Validates it's a git repository
+- Prevents duplicate registrations
+
+## Project Detection
+
+A "current project" is detected by checking (in order):
+1. Is pwd inside `~/.work/worktrees/<project>/`? → that project
+2. Is pwd inside any registered project's main repo path? → that project
+3. Otherwise → null (not in a project)
 
 ## Features
-
-### Consistent Display
-The fuzzy picker (`work` and `work switch`) must display the same rich information as `work list`, including colors. Users should see branch name, age, current marker, PR status, and CI checks in the fuzzy picker - not just branch names. Use the fuzzy finder's `--ansi` flag to render colors.
 
 ### PR Status Integration
 Uses `gh pr list` to fetch PR information for each branch:
@@ -59,9 +110,7 @@ Uses `gh pr list` to fetch PR information for each branch:
 - CI status checks with pass/fail/pending counts
 
 ### Parallel Fetching
-Fetches PR info for all worktrees concurrently:
-- **work.sh:** Use background jobs with `&` and `wait`
-- **work.nu:** Use `par-each` for parallel iteration
+Fetches PR info for all worktrees concurrently using `par-each`.
 
 ### Color Coding
 Use ANSI codes for colors:
@@ -74,75 +123,72 @@ Use ANSI codes for colors:
 
 ### Status Check Display
 Shows CI status as icon + count:
-- `3/5` - all checks passing (green)
-- `3/5` - some checks failing (red)
-- `4/5` - checks pending (yellow)
+- `✓ 3/5` - all checks passing (green)
+- `✗ 3/5` - some checks failing (red)
+- `○ 4/5` - checks pending (yellow)
 
 ### Safety Features
 - Warns before deleting worktrees with branches still on remote
 - Checks for uncommitted changes and unpushed commits
 - Prompts for confirmation when deleting worktrees with local changes
 
-## Directory Structure
+## Integration Points
 
-```
-~/code/myrepo/              # Main repository
-~/code/myrepo-worktrees/    # Worktrees directory
-  ├── feature-a/            # Worktree for feature-a branch
-  ├── feature-b/            # Worktree for feature-b branch
-  └── bugfix-123/           # Worktree for bugfix-123 branch
+- **GitHub CLI (`gh`)**: Fetches PR info (number, state, status checks)
+- **mise**: Auto-trusts config files when entering worktrees
+- **Claude Code**: Sets up session name in `.claude/settings.local.json`
+
+## Data Format
+
+`projects.nuon` (Nushell structured data):
+```nuon
+[
+  {name: "web", path: "/Users/user/workspace/web"},
+  {name: "zenpayroll", path: "/Users/user/workspace/zenpayroll"}
+]
 ```
 
 ## Script Structure
 
-Both scripts must be sourceable (not standalone executables) because they need to change the calling shell's directory:
+The script must be sourceable (not a standalone executable) because it needs to change the calling shell's directory.
 
-- **work.sh:** Define a `work() { ... }` function with case statement for bash/zsh
-- **work.nu:** Define a `def --env work [...] { ... }` command with match expression for nushell
+Define commands using `def --env` for any command that changes directory:
+```nushell
+def --env work [arg?: string]: nothing -> nothing { ... }
+def --env "work rm" [branch?: string]: nothing -> nothing { ... }
+```
 
 ## Runtime Dependencies
 
-**work.sh (bash/zsh):**
 - `git` - for worktree management
-- `gh` - GitHub CLI for PR status (optional but recommended)
-- `fzf` or `sk` - for fuzzy selection (use whichever is available)
-- `jq` - for JSON parsing
-
-**work.nu (nushell):**
-- `git` - for worktree management
-- `gh` - GitHub CLI for PR status (optional but recommended)
-- `fzf` or `sk` - for fuzzy selection (use whichever is available)
-- No `jq` needed - nushell has native JSON support
+- `gh` - GitHub CLI for PR status
+- Nushell's built-in `input list --fuzzy` for selection
 
 ## Example Usage
 
 ```shell
-# Start working on a new feature
-work go mz-new-feature
+# Register current repo as a project
+work add
+
+# Start working on a new feature (auto-registers if needed)
+work mz-new-feature
+
+# Interactive switcher
+work
 
 # List all worktrees with status
-work list
+work ls
 
-# Quick switch with fuzzy finder (or just `work`)
-work sw
-
-# Clean up merged branches
+# Clean up merged branches across all projects
 work prune
 
-# Delete a specific worktree
-work delete old-branch
+# Delete current worktree
+work rm
 ```
 
 ## Technical Notes
 
-- Use `git worktree list --porcelain` for parsing worktree info
-- Use `gh pr list --json` for structured PR data
-- Handle edge cases: no worktrees, missing gh CLI, no fzf/sk, detached HEAD worktrees (multiple worktrees may have no branch)
-- Scripts must be sourceable (e.g., `source work.sh` for bash/zsh, `source work.nu` for nushell)
-
-## Testing
-
-Test with repos that have:
-- Multiple worktrees on named branches
-- At least one detached HEAD worktree (created via `git worktree add --detach`)
-- The main repository itself (not in worktrees directory)
+- Use `git worktree add --no-checkout` + background checkout for faster worktree creation
+- Use `path expand` for all paths to handle `~` properly
+- Handle edge cases: no projects registered, no worktrees, missing gh CLI
+- All directory-changing functions must use `def --env`

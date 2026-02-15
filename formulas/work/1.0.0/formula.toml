@@ -3,4 +3,4 @@ name = "work"
 version = "1.0.0"
 description = "Git worktree manager with GitHub PR status, CI check counts, and interactive fuzzy switching"
 license = "MIT"
-scripts = ["work"]
+scripts = ["work.sh", "work.nu"]

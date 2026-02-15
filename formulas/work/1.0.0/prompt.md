@@ -62,7 +62,7 @@ Both scripts must be sourceable to allow directory changes in the calling shell.
 - Press ESC in worktree view → returns to project list
 - Select worktree → cd to that directory
 
-**TUI Mockup — Project List:**
+**Project list:**
 ```
 Select project:
 > web           3 worktrees   ~/workspace/web
@@ -70,7 +70,7 @@ Select project:
   api           no worktrees  ~/workspace/api    <- current
 ```
 
-**TUI Mockup — Worktree List:**
+**Worktree list:**
 ```
 web [esc=back]:
 > main                (main repo)
@@ -91,7 +91,7 @@ web [esc=back]:
 5. **Optimize:** Run `git checkout` in background for faster perceived startup
 6. **Navigate:** cd into the worktree
 
-**TUI Mockup — New branch:**
+**New branch:**
 ```
 ~/workspace/web $ work mz-new-feature
 web > mz-new-feature
@@ -100,7 +100,7 @@ Creating new branch from origin/main...
 ~/.work/worktrees/web/mz-new-feature $
 ```
 
-**TUI Mockup — Auto-register:**
+**Auto-register:**
 ```
 ~/workspace/newproject $ work mz-first-branch
 Registering 'newproject'...
@@ -110,7 +110,7 @@ Creating new branch from origin/main...
 ~/.work/worktrees/newproject/mz-first-branch $
 ```
 
-**TUI Mockup — Existing branch:**
+**Existing branch:**
 ```
 ~/workspace/web $ work mz-existing-feature
 web > mz-existing-feature
@@ -135,13 +135,13 @@ web worktrees:
 
 ```
 
-**TUI Mockup — No worktrees:**
+**No worktrees:**
 ```
 ~/workspace/api $ work ls
 No worktrees for api
 ```
 
-**TUI Mockup — Not in project:**
+**Not in project:**
 ```
 ~/random/dir $ work ls
 Error: Not in a registered project
@@ -164,7 +164,7 @@ Use work add to register a project
 - Delete local branch
 - If deleting current worktree → cd to main repo
 
-**TUI Mockup — Delete current (merged):**
+**Delete current (merged):**
 ```
 ~/.work/worktrees/web/mz-old-feature $ work rm
 Removing 'mz-old-feature'...
@@ -172,13 +172,13 @@ Removed mz-old-feature
 ~/workspace/web $
 ```
 
-**TUI Mockup — Delete by name:**
+**Delete by name:**
 ```
 ~/workspace/web $ work rm mz-old-feature
 Removed mz-old-feature
 ```
 
-**TUI Mockup — Branch still on remote:**
+**Branch still on remote:**
 ```
 ~/.work/worktrees/web/mz-wip $ work rm
 Warning: Branch still exists on remote
@@ -188,7 +188,7 @@ Removed mz-wip
 ~/workspace/web $
 ```
 
-**TUI Mockup — Not in worktree:**
+**Not in worktree:**
 ```
 ~/workspace/web $ work rm
 Usage: work rm <branch>
@@ -205,7 +205,7 @@ Usage: work rm <branch>
    - Skip (with warning) if has uncommitted changes or unpushed commits
    - Otherwise → remove worktree and local branch
 
-**TUI Mockup — Normal operation:**
+**Normal operation:**
 ```
 $ work prune
 web - fetching...
@@ -217,7 +217,7 @@ zenpayroll - fetching...
 Pruned 3 worktree(s) across 2 project(s)
 ```
 
-**TUI Mockup — With local changes:**
+**With local changes:**
 ```
 $ work prune
 web - fetching...
@@ -229,7 +229,7 @@ Pruned 1 worktree(s) across 1 project(s)
 Skipped 1 with local changes
 ```
 
-**TUI Mockup — Nothing to prune:**
+**Nothing to prune:**
 ```
 $ work prune
 web - fetching...
@@ -238,7 +238,7 @@ zenpayroll - fetching...
 No worktrees to prune
 ```
 
-**TUI Mockup — No projects:**
+**No projects:**
 ```
 $ work prune
 No projects registered
@@ -251,25 +251,25 @@ No projects registered
 - Project name = directory basename
 - Prevents duplicate registrations (by name or path)
 
-**TUI Mockup — Register current directory:**
+**Register current directory:**
 ```
 ~/workspace/web $ work add
 Registered 'web'
 ```
 
-**TUI Mockup — Register by path:**
+**Register by path:**
 ```
 $ work add ~/workspace/api
 Registered 'api'
 ```
 
-**TUI Mockup — Already registered:**
+**Already registered:**
 ```
 ~/workspace/web $ work add
 Project 'web' already registered
 ```
 
-**TUI Mockup — Not a git repo:**
+**Not a git repo:**
 ```
 ~/random/dir $ work add
 Error: Not a git repository

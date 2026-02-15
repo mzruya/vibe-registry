@@ -123,7 +123,6 @@ Creating from existing branch...
 
 **Requires:** Must be inside a registered project
 
-**TUI Mockup:**
 ```
 ~/workspace/web $ work ls
 web worktrees:

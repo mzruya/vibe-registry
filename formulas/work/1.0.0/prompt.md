@@ -1,8 +1,11 @@
 # Work - Git Worktree Manager
 
-Generate a shell script called `work` that manages git worktrees for parallel branch development with GitHub PR status integration.
+Generate two shell scripts that manage git worktrees for parallel branch development with GitHub PR status integration:
 
-**Important:** Detect the user's current shell (bash, zsh, fish, or nushell) and generate the script using idiomatic patterns for that shell. The script must be sourceable to allow directory changes in the calling shell.
+1. **`work.sh`** - A POSIX-compatible script for bash/zsh
+2. **`work.nu`** - A Nushell script using idiomatic nushell patterns
+
+Both scripts must be sourceable to allow directory changes in the calling shell.
 
 ## Overview
 
@@ -53,7 +56,9 @@ Uses `gh pr list` to fetch PR information for each branch:
 - CI status checks with pass/fail/pending counts
 
 ### Parallel Fetching
-Fetches PR info for all worktrees concurrently where the shell supports it (e.g., `par-each` in nushell, background jobs in bash/zsh/fish).
+Fetches PR info for all worktrees concurrently:
+- **work.sh:** Use background jobs with `&` and `wait`
+- **work.nu:** Use `par-each` for parallel iteration
 
 ### Color Coding
 Use ANSI codes for colors:
@@ -87,18 +92,24 @@ Shows CI status as icon + count:
 
 ## Script Structure
 
-The script must be sourceable (not a standalone executable) because it needs to change the calling shell's directory. Define a `work` function using idiomatic patterns for the detected shell:
+Both scripts must be sourceable (not standalone executables) because they need to change the calling shell's directory:
 
-- **Bash/Zsh:** `work() { ... }` function with case statement
-- **Fish:** `function work ... end` with switch statement
-- **Nushell:** `def --env work [...] { ... }` with match expression
+- **work.sh:** Define a `work() { ... }` function with case statement for bash/zsh
+- **work.nu:** Define a `def --env work [...] { ... }` command with match expression for nushell
 
 ## Runtime Dependencies
 
+**work.sh (bash/zsh):**
 - `git` - for worktree management
 - `gh` - GitHub CLI for PR status (optional but recommended)
 - `fzf` or `sk` - for fuzzy selection (use whichever is available)
-- `jq` - for JSON parsing (bash/zsh/fish only; nushell has native JSON support)
+- `jq` - for JSON parsing
+
+**work.nu (nushell):**
+- `git` - for worktree management
+- `gh` - GitHub CLI for PR status (optional but recommended)
+- `fzf` or `sk` - for fuzzy selection (use whichever is available)
+- No `jq` needed - nushell has native JSON support
 
 ## Example Usage
 
@@ -124,4 +135,4 @@ work delete old-branch
 - Use `git worktree list --porcelain` for parsing worktree info
 - Use `gh pr list --json` for structured PR data
 - Handle edge cases: no worktrees, missing gh CLI, no fzf/sk
-- The script must be sourceable (e.g., `source work`)
+- Scripts must be sourceable (e.g., `source work.sh` for bash/zsh, `source work.nu` for nushell)

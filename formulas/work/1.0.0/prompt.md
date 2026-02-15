@@ -137,5 +137,12 @@ work delete old-branch
 
 - Use `git worktree list --porcelain` for parsing worktree info
 - Use `gh pr list --json` for structured PR data
-- Handle edge cases: no worktrees, missing gh CLI, no fzf/sk
+- Handle edge cases: no worktrees, missing gh CLI, no fzf/sk, detached HEAD worktrees (multiple worktrees may have no branch)
 - Scripts must be sourceable (e.g., `source work.sh` for bash/zsh, `source work.nu` for nushell)
+
+## Testing
+
+Test with repos that have:
+- Multiple worktrees on named branches
+- At least one detached HEAD worktree (created via `git worktree add --detach`)
+- The main repository itself (not in worktrees directory)

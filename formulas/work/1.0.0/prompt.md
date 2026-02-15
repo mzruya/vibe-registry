@@ -57,24 +57,32 @@ Both scripts must be sourceable to allow directory changes in the calling shell.
 | Outside any project | Project list |
 | Inside a registered project | Worktree list for that project |
 
-**Project list displays:**
-- Project name (bold)
-- Worktree count (e.g., "3 worktrees" or "no worktrees")
-- Path (dimmed)
-- Current marker if applicable
-
-**Worktree list displays:**
-- Branch name
-- Age (e.g., "2 days ago")
-- PR number + state (open/merged/closed)
-- CI status (✓ passing, ✗ failing, ○ pending) with counts
-- Current marker if applicable
-- "main" option to return to main repo
-
 **Navigation:**
 - Select project → shows its worktrees
 - Press ESC in worktree view → returns to project list
 - Select worktree → cd to that directory
+
+**TUI Mockup — Project List:**
+```
+Select project:
+┌──────────────────────────────────────────────────────────────┐
+│ > web           3 worktrees   ~/workspace/web                │
+│   zenpayroll    1 worktree    ~/workspace/zenpayroll         │
+│   api           no worktrees  ~/workspace/api    <- current  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**TUI Mockup — Worktree List:**
+```
+web [esc=back]:
+┌──────────────────────────────────────────────────────────────┐
+│ > main                (main repo)                            │
+│   mz-feature-auth     (2 days ago)   #142 open   ✓ 12/12    │
+│   mz-fix-login        (5 days ago)   #138 merged             │
+│   mz-refactor-api     (1 week ago)   #135 open   ✗ 8/12     │
+│   mz-add-tests        (3 days ago)              <- current   │
+└──────────────────────────────────────────────────────────────┘
+```
 
 ### `work <branch>` — Create Worktree
 
@@ -87,17 +95,61 @@ Both scripts must be sourceable to allow directory changes in the calling shell.
 5. **Optimize:** Run `git checkout` in background for faster perceived startup
 6. **Navigate:** cd into the worktree
 
+**TUI Mockup — New branch:**
+```
+~/workspace/web $ work mz-new-feature
+web > mz-new-feature
+Fetching origin/main...
+Creating new branch from origin/main...
+~/.work/worktrees/web/mz-new-feature $
+```
+
+**TUI Mockup — Auto-register:**
+```
+~/workspace/newproject $ work mz-first-branch
+Registering 'newproject'...
+newproject > mz-first-branch
+Fetching origin/main...
+Creating new branch from origin/main...
+~/.work/worktrees/newproject/mz-first-branch $
+```
+
+**TUI Mockup — Existing branch:**
+```
+~/workspace/web $ work mz-existing-feature
+web > mz-existing-feature
+Fetching origin/main...
+Creating from existing branch...
+~/.work/worktrees/web/mz-existing-feature $
+```
+
 ### `work ls` — List Worktrees
 
 **Requires:** Must be inside a registered project
 
-**Output format:**
+**TUI Mockup:**
 ```
-<project> worktrees:
+~/workspace/web $ work ls
+web worktrees:
 
-  <branch>  (2 days ago)  #123 open ✓ 5/5  <url>
-  <branch>  (1 week ago)  #120 merged
-  <branch>  (3 days ago) <- current
+  mz-feature-auth   (2 days ago)   #142 open ✓ 12/12  https://github.com/org/web/pull/142
+  mz-fix-login      (5 days ago)   #138 merged
+  mz-refactor-api   (1 week ago)   #135 open ✗ 8/12   https://github.com/org/web/pull/135
+  mz-add-tests      (3 days ago)   <- current
+
+```
+
+**TUI Mockup — No worktrees:**
+```
+~/workspace/api $ work ls
+No worktrees for api
+```
+
+**TUI Mockup — Not in project:**
+```
+~/random/dir $ work ls
+Error: Not in a registered project
+Use work add to register a project
 ```
 
 ### `work rm [branch]` — Delete Worktree
@@ -116,6 +168,36 @@ Both scripts must be sourceable to allow directory changes in the calling shell.
 - Delete local branch
 - If deleting current worktree → cd to main repo
 
+**TUI Mockup — Delete current (merged):**
+```
+~/.work/worktrees/web/mz-old-feature $ work rm
+Removing 'mz-old-feature'...
+Removed mz-old-feature
+~/workspace/web $
+```
+
+**TUI Mockup — Delete by name:**
+```
+~/workspace/web $ work rm mz-old-feature
+Removed mz-old-feature
+```
+
+**TUI Mockup — Branch still on remote:**
+```
+~/.work/worktrees/web/mz-wip $ work rm
+Warning: Branch still exists on remote
+Delete anyway? [y/N] y
+Switching to main repo...
+Removed mz-wip
+~/workspace/web $
+```
+
+**TUI Mockup — Not in worktree:**
+```
+~/workspace/web $ work rm
+Usage: work rm <branch>
+```
+
 ### `work prune` — Cleanup Merged Worktrees
 
 **Scope:** Operates across ALL registered projects
@@ -127,16 +209,43 @@ Both scripts must be sourceable to allow directory changes in the calling shell.
    - Skip (with warning) if has uncommitted changes or unpushed commits
    - Otherwise → remove worktree and local branch
 
-**Output:**
+**TUI Mockup — Normal operation:**
 ```
+$ work prune
 web - fetching...
-  mz-old-feature  removed
-  mz-shipped      removed
+  mz-old-feature      removed
+  mz-shipped          removed
 zenpayroll - fetching...
-  mz-done         removed
+  mz-done             removed
 
 Pruned 3 worktree(s) across 2 project(s)
+```
+
+**TUI Mockup — With local changes:**
+```
+$ work prune
+web - fetching...
+  mz-old-feature      removed
+  mz-wip              has local changes - skipped
+zenpayroll - fetching...
+
+Pruned 1 worktree(s) across 1 project(s)
 Skipped 1 with local changes
+```
+
+**TUI Mockup — Nothing to prune:**
+```
+$ work prune
+web - fetching...
+zenpayroll - fetching...
+
+No worktrees to prune
+```
+
+**TUI Mockup — No projects:**
+```
+$ work prune
+No projects registered
 ```
 
 ### `work add [path]` — Register Project
@@ -145,6 +254,30 @@ Skipped 1 with local changes
 - Validates path is a git repository
 - Project name = directory basename
 - Prevents duplicate registrations (by name or path)
+
+**TUI Mockup — Register current directory:**
+```
+~/workspace/web $ work add
+Registered 'web'
+```
+
+**TUI Mockup — Register by path:**
+```
+$ work add ~/workspace/api
+Registered 'api'
+```
+
+**TUI Mockup — Already registered:**
+```
+~/workspace/web $ work add
+Project 'web' already registered
+```
+
+**TUI Mockup — Not a git repo:**
+```
+~/random/dir $ work add
+Error: Not a git repository
+```
 
 ---
 

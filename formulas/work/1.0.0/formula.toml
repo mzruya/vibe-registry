@@ -1,6 +1,6 @@
 [package]
 name = "work"
 version = "1.0.0"
-description = "Git worktree manager for parallel branch development with PR status"
+description = "Nushell git worktree manager with GitHub PR status, CI check counts, and interactive fuzzy switching"
 license = "MIT"
 binaries = ["work"]

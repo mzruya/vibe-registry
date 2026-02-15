@@ -1,174 +1,159 @@
-# work - Git Worktree Manager
+# Work - Git Worktree Manager
 
-A CLI that makes working with multiple git branches effortless. Each branch gets its own directory - no more stashing or juggling commits.
+Write a Rust CLI tool called `work` that manages git worktrees for parallel branch development with GitHub PR status integration.
 
-## The Problem
+## Overview
 
-You're deep in a feature when a bug needs fixing on another branch. Your options: stash your work, commit half-done code, or clone the repo again. Git worktrees solve this but the commands are verbose and forgettable.
-
-## Directory Structure
-
-Worktrees live as siblings to the main repo with a `-worktrees` suffix:
-
-```
-~/code/
-├── myproject/                    # main repo
-└── myproject-worktrees/
-    ├── my-feature/               # worktree for my-feature branch
-    ├── bugfix-login/             # worktree for bugfix-login branch
-    └── experiment/               # worktree for experiment branch
-```
+The tool enables working on multiple branches simultaneously by creating isolated worktrees in a sibling directory (`<repo>-worktrees/`). Each worktree is a full working copy of the repository on a specific branch.
 
 ## Commands
 
-### `work <branch>`
+### `work` (no arguments)
+Opens an interactive fuzzy picker to switch between existing worktrees. Prints the selected worktree path to stdout for shell integration.
 
-Creates a new worktree and cd's into it. If the worktree already exists, just cd's there.
+### `work go <branch>`
+Creates a new worktree for the branch if it doesn't exist. The binary only creates - shell wrappers intercept this command and use `work path` to cd afterward.
+- New worktrees are created from `origin/main`
+- Uses `--no-checkout` for faster creation
+- Auto-configures Claude Code session name (`.claude/settings.local.json`)
+- Spawns background checkout process
 
-**Critical UX requirement: This command MUST return instantly (under 1 second) regardless of repository size.** The user should be in their new directory immediately. Any slow operations like fetching or populating files must happen asynchronously after the prompt returns. This is the entire point of the tool - fast context switching.
+### `work list` or `work ls`
+Lists all worktrees with rich status information:
+- Branch name (highlighted green if current)
+- Age (e.g., "2 days ago")
+- Current worktree marker (`<- current`)
+- PR number, state, and URL
+- CI status with check counts (e.g., `✓ 3/5`)
 
-**Creating a new worktree:**
-```
-~/code/myproject $ work my-feature
-Created worktree at ~/code/myproject-worktrees/my-feature
-Checking out files in background...
-~/code/myproject-worktrees/my-feature $
-```
+### `work switch` or `work sw`
+Interactive fuzzy picker showing all worktrees with the same rich formatting as `work list`. Type to filter, press Enter to select. Prints selected path to stdout.
 
-The user is now in the worktree directory. Files appear in the background over the next few seconds while they can already start working.
+### `work path <branch>`
+Prints the path where a worktree for the given branch would be located. Does not create the worktree or check if it exists. Useful for shell integration.
 
-**Switching to existing worktree:**
-```
-~/code/myproject $ work my-feature
-Switching to existing worktree: my-feature
-~/code/myproject-worktrees/my-feature $
-```
-
-New branches are created from origin/main (using whatever is locally available - no fetching).
-
-"Created worktree" and "Switching to existing worktree" messages are green.
-"Checking out files in background..." is dimmed/gray.
-
-### `work list`
-
-Shows all worktrees with age and PR status.
-
-```
-~/code/myproject $ work list
-Worktrees in ~/code/myproject-worktrees:
-
-  my-feature     (2 hours ago)    #423 open ✓    github.com/org/repo/pull/423
-  bugfix-login   (3 days ago)     #419 merged
-  experiment     (1 week ago)
-```
-
-- Branch names are cyan and bold
-- Age in parentheses is dimmed/gray
-- PR number and status: "open ✓" is green, "merged" is purple, "closed" is red
-- PR URL is dimmed/gray
-- If `gh` CLI is not available, just skip the PR info columns
-
-Age format: "just now", "2 minutes ago", "1 hour ago", "3 days ago", "2 weeks ago"
+### `work delete <branch>`
+Deletes a worktree and its local branch.
+- If no branch specified and currently in a worktree, deletes the current one
+- Warns if branch still exists on remote (PR may not be merged)
+- Prints main repo path to stdout if deleting current worktree
 
 ### `work prune`
+Cleans up worktrees whose branches have been merged (no longer on origin).
+- Fetches from origin first to ensure up-to-date info
+- Checks for local changes before deleting
+- Prompts for confirmation if worktree has uncommitted/unpushed changes
 
-Removes worktrees whose branches no longer exist on origin (PR was merged/closed).
+## Features
 
-```
-~/code/myproject $ work prune
-Fetching from origin...
-Pruned: bugfix-login (branch deleted from origin)
-Skipped: experiment (has uncommitted changes)
-Pruned 1 worktree
-```
+### PR Status Integration
+Uses `gh pr list` to fetch PR information for each branch:
+- PR number and URL
+- State: open (green), merged (purple), closed (red)
+- CI status checks with pass/fail/pending counts
 
-- "Fetching from origin..." is dimmed/gray
-- "Pruned:" is green, followed by branch name
-- "Skipped:" is yellow, followed by branch name and reason in parentheses
+### Parallel Fetching
+Fetches PR info for all worktrees concurrently using async/tokio, significantly improving speed with multiple worktrees.
 
-Never deletes worktrees with uncommitted changes or unpushed commits without asking.
+### Color Coding
+- Green: open PRs, passing checks, current worktree
+- Red: closed PRs, failing checks
+- Yellow: pending checks
+- Purple: merged PRs
+- Cyan: PR numbers
+- Grey: URLs and timestamps
 
-### `work delete <branch>` or `work -d <branch>`
+### Status Check Display
+Shows CI status as icon + count:
+- `✓ 5/5` - all checks passing (green)
+- `✗ 3/5` - some checks failing (red)
+- `○ 4/5` - checks pending (yellow)
 
-Deletes a specific worktree.
+### Safety Features
+- Warns before deleting worktrees with branches still on remote
+- Checks for uncommitted changes and unpushed commits
+- Prompts for confirmation when deleting worktrees with local changes
 
-**Clean deletion (branch already merged):**
-```
-~/code/myproject $ work -d bugfix-login
-Deleted: bugfix-login
-```
-
-**With uncommitted changes:**
-```
-~/code/myproject $ work -d my-feature
-Warning: Worktree has uncommitted changes
-Delete anyway? [y/N] n
-Aborted.
-```
-
-**Branch still on origin:**
-```
-~/code/myproject $ work -d my-feature
-Warning: Branch still exists on origin (PR may not be merged)
-Delete anyway? [y/N]
-```
-
-- "Warning:" is yellow and bold
-- "Deleted:" is green
-- "Aborted." is dimmed/gray
-- Default for confirmation prompts is always No
-
-### `work init`
-
-Sets up shell integration so the command can cd into worktrees.
+## Directory Structure
 
 ```
-$ work init
-Detected shell: zsh
-Add this to your ~/.zshrc:
-
-  eval "$(work init)"
-
-Then restart your shell or run: source ~/.zshrc
+~/code/myrepo/              # Main repository
+~/code/myrepo-worktrees/    # Worktrees directory
+  ├── feature-a/            # Worktree for feature-a branch
+  ├── feature-b/            # Worktree for feature-b branch
+  └── bugfix-123/           # Worktree for bugfix-123 branch
 ```
 
-**With explicit shell:**
-```
-$ work init --shell fish
-Detected shell: fish
-Add this to your ~/.config/fish/config.fish:
+## Shell Integration
 
-  work init | source
+Shell wrappers intercept `work go` to add directory changing:
 
-Then restart your shell.
-```
-
-Must support: bash, zsh, fish, and nushell. Auto-detect from $SHELL if --shell not provided.
-
-### `work --wait <branch>` or `work -w <branch>`
-
-Blocking mode - the opposite of the default instant behavior. Fetches from origin first, waits for all files to be checked out, then returns. Takes 10-30+ seconds on large repos. Useful for scripts or CI where you need files immediately.
-
-```
-~/code/myproject $ work --wait my-feature
-Fetching from origin...
-Created worktree at ~/code/myproject-worktrees/my-feature
-~/code/myproject-worktrees/my-feature $
+```bash
+# Bash/Zsh
+work() {
+  command work "$@"
+  if [[ "$1" == "go" && -n "$2" ]]; then
+    local path=$(command work path "$2")
+    [[ -d "$path" ]] && cd "$path"
+  fi
+}
 ```
 
-This is intentionally slow because it ensures everything is ready before returning.
+```nu
+# Nushell
+def --env work [...args] {
+  ^work ...$args
+  if ($args | first | default "") == "go" and ($args | length) > 1 {
+    let branch = ($args | get 1)
+    let path = (^work path $branch | str trim)
+    if ($path | path exists) {
+      cd $path
+    }
+  }
+}
+```
 
-## Additional Behavior
+The `work path <branch>` command returns the worktree path for scripting:
+```bash
+# Check if worktree exists
+if [[ -d "$(work path my-feature)" ]]; then
+  echo "Worktree exists"
+fi
+```
 
-- A worktree "exists" if it has a `.git` file or directory inside it
-- Create `.claude/settings.local.json` with `{"sessionName": "<branch>"}` in each new worktree for Claude Code session naming
-- If not in a git repository, show: "Error: Not in a git repository" (red)
+## Runtime Dependencies
 
-## Technical Constraints
+- `git` - for worktree management
+- `gh` - GitHub CLI for PR status (optional but recommended)
+
+## Example Usage
+
+```sh
+# Start working on a new feature (shell wrapper handles cd)
+work go mz-new-feature
+
+# List all worktrees with status
+work list
+
+# Quick switch with fuzzy finder (or just `work`)
+work sw
+
+# Clean up merged branches
+work prune
+
+# Delete a specific worktree
+work delete old-branch
+```
+
+## Technical Requirements
 
 - Language: Rust
-- Binary name: `work`
-- Shell out to `git` and `gh` commands (don't use libgit2)
-- Use `clap` for argument parsing
-- Use `colored` crate for terminal colors
-- Use `dialoguer` for confirmation prompts
+- Use `clap` v4 with derive macros for CLI parsing
+- Use `tokio` for async runtime and parallel PR fetching
+- Use `skim` for interactive fuzzy selection
+- Use `colored` for terminal colors
+- Use `git2` or shell out to `git` for git operations
+- Use `chrono` or `humantime` for relative time formatting
+- Shell out to `gh` CLI for GitHub API calls
+- The binary name must be `work`
+- Compile with `cargo build --release`

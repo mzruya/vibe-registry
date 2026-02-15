@@ -65,23 +65,19 @@ Both scripts must be sourceable to allow directory changes in the calling shell.
 **TUI Mockup — Project List:**
 ```
 Select project:
-┌──────────────────────────────────────────────────────────────┐
-│ > web           3 worktrees   ~/workspace/web                │
-│   zenpayroll    1 worktree    ~/workspace/zenpayroll         │
-│   api           no worktrees  ~/workspace/api    <- current  │
-└──────────────────────────────────────────────────────────────┘
+> web           3 worktrees   ~/workspace/web
+  zenpayroll    1 worktree    ~/workspace/zenpayroll
+  api           no worktrees  ~/workspace/api    <- current
 ```
 
 **TUI Mockup — Worktree List:**
 ```
 web [esc=back]:
-┌──────────────────────────────────────────────────────────────┐
-│ > main                (main repo)                            │
-│   mz-feature-auth     (2 days ago)   #142 open   ✓ 12/12    │
-│   mz-fix-login        (5 days ago)   #138 merged             │
-│   mz-refactor-api     (1 week ago)   #135 open   ✗ 8/12     │
-│   mz-add-tests        (3 days ago)              <- current   │
-└──────────────────────────────────────────────────────────────┘
+> main                (main repo)
+  mz-feature-auth     (2 days ago)   #142 open   ✓ 12/12
+  mz-fix-login        (5 days ago)   #138 merged
+  mz-refactor-api     (1 week ago)   #135 open   ✗ 8/12
+  mz-add-tests        (3 days ago)              <- current
 ```
 
 ### `work <branch>` — Create Worktree

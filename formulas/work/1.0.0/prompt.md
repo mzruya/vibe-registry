@@ -14,7 +14,7 @@ The tool enables working on multiple branches simultaneously by creating isolate
 ## Commands
 
 ### `work` (no arguments)
-Opens an interactive fuzzy picker to switch between existing worktrees. Changes to the selected worktree directory.
+Opens an interactive fuzzy picker to switch between existing worktrees, displaying the same rich information as `work list`. Changes to the selected worktree directory.
 
 ### `work go <branch>`
 Creates a new worktree for the branch if it doesn't exist and changes to it.
@@ -30,7 +30,7 @@ Lists all worktrees with rich status information:
 - CI status with check counts (e.g., `3/5`)
 
 ### `work switch` or `work sw`
-Interactive fuzzy picker showing all worktrees. Type to filter, press Enter to select. Changes to selected directory.
+Interactive fuzzy picker showing all worktrees with the same rich information as `work list` (branch name, age, current marker, PR status, CI checks). Type to filter, press Enter to select. Changes to selected directory.
 
 ### `work path <branch>`
 Prints the path where a worktree for the given branch would be located. Does not create the worktree or check if it exists. Useful for scripting.

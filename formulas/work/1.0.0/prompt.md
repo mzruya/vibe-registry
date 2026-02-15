@@ -49,6 +49,9 @@ Cleans up worktrees whose branches have been merged (no longer on origin).
 
 ## Features
 
+### Consistent Display
+The fuzzy picker (`work` and `work switch`) must display the same rich information as `work list`. Users should see branch name, age, current marker, PR status, and CI checks in the fuzzy picker - not just branch names. The fuzzy finder filters this rich display.
+
 ### PR Status Integration
 Uses `gh pr list` to fetch PR information for each branch:
 - PR number and URL

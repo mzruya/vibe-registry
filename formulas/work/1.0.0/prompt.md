@@ -34,11 +34,11 @@ Both scripts must be sourceable to allow directory changes in the calling shell.
 
 ```
 ~/.config/work/
-└── projects.nuon          # [{name: "web", path: "/path/to/web"}, ...]
+└── projects              # Registered projects list
 
 ~/.work/worktrees/
 ├── <project>/
-│   ├── <branch>/          # Full git worktree
+│   ├── <branch>/         # Full git worktree
 │   └── <branch>/
 └── <project>/
     └── <branch>/
@@ -325,7 +325,6 @@ To determine "current project":
 - Use `input list --fuzzy` for selection
 - Use native `from json` for parsing
 - Use `par-each` for parallel PR fetching
-- Use `.nuon` format for config file
 
 ### Both
 - `git` for worktree operations

@@ -1,6 +1,6 @@
 # Work - Git Worktree Manager
 
-Write a Rust CLI tool called `work` that manages git worktrees for parallel branch development with GitHub PR status integration.
+Write a Nushell script called `work.nu` that manages git worktrees for parallel branch development with GitHub PR status integration.
 
 ## Overview
 
@@ -9,14 +9,12 @@ The tool enables working on multiple branches simultaneously by creating isolate
 ## Commands
 
 ### `work` (no arguments)
-Opens an interactive fuzzy picker to switch between existing worktrees. Prints the selected worktree path to stdout for shell integration.
+Opens an interactive fuzzy picker to switch between existing worktrees. Changes to the selected worktree directory.
 
 ### `work go <branch>`
-Creates a new worktree for the branch if it doesn't exist. The binary only creates - shell wrappers intercept this command and use `work path` to cd afterward.
+Creates a new worktree for the branch if it doesn't exist and changes to it.
 - New worktrees are created from `origin/main`
-- Uses `--no-checkout` for faster creation
 - Auto-configures Claude Code session name (`.claude/settings.local.json`)
-- Spawns background checkout process
 
 ### `work list` or `work ls`
 Lists all worktrees with rich status information:
@@ -24,19 +22,19 @@ Lists all worktrees with rich status information:
 - Age (e.g., "2 days ago")
 - Current worktree marker (`<- current`)
 - PR number, state, and URL
-- CI status with check counts (e.g., `✓ 3/5`)
+- CI status with check counts (e.g., `3/5`)
 
 ### `work switch` or `work sw`
-Interactive fuzzy picker showing all worktrees with the same rich formatting as `work list`. Type to filter, press Enter to select. Prints selected path to stdout.
+Interactive fuzzy picker showing all worktrees. Type to filter, press Enter to select. Changes to selected directory.
 
 ### `work path <branch>`
-Prints the path where a worktree for the given branch would be located. Does not create the worktree or check if it exists. Useful for shell integration.
+Prints the path where a worktree for the given branch would be located. Does not create the worktree or check if it exists. Useful for scripting.
 
 ### `work delete <branch>`
 Deletes a worktree and its local branch.
 - If no branch specified and currently in a worktree, deletes the current one
 - Warns if branch still exists on remote (PR may not be merged)
-- Prints main repo path to stdout if deleting current worktree
+- Returns to main repo if deleting current worktree
 
 ### `work prune`
 Cleans up worktrees whose branches have been merged (no longer on origin).
@@ -53,9 +51,10 @@ Uses `gh pr list` to fetch PR information for each branch:
 - CI status checks with pass/fail/pending counts
 
 ### Parallel Fetching
-Fetches PR info for all worktrees concurrently using async/tokio, significantly improving speed with multiple worktrees.
+Fetches PR info for all worktrees concurrently using `par-each`, significantly improving speed with multiple worktrees.
 
 ### Color Coding
+Use ANSI codes for colors:
 - Green: open PRs, passing checks, current worktree
 - Red: closed PRs, failing checks
 - Yellow: pending checks
@@ -65,9 +64,9 @@ Fetches PR info for all worktrees concurrently using async/tokio, significantly 
 
 ### Status Check Display
 Shows CI status as icon + count:
-- `✓ 5/5` - all checks passing (green)
-- `✗ 3/5` - some checks failing (red)
-- `○ 4/5` - checks pending (yellow)
+- `3/5` - all checks passing (green)
+- `3/5` - some checks failing (red)
+- `4/5` - checks pending (yellow)
 
 ### Safety Features
 - Warns before deleting worktrees with branches still on remote
@@ -84,52 +83,32 @@ Shows CI status as icon + count:
   └── bugfix-123/           # Worktree for bugfix-123 branch
 ```
 
-## Shell Integration
+## Script Structure
 
-Shell wrappers intercept `work go` to add directory changing:
-
-```bash
-# Bash/Zsh
-work() {
-  command work "$@"
-  if [[ "$1" == "go" && -n "$2" ]]; then
-    local path=$(command work path "$2")
-    [[ -d "$path" ]] && cd "$path"
-  fi
-}
-```
+The script should define an `--env` function to allow directory changes:
 
 ```nu
-# Nushell
-def --env work [...args] {
-  ^work ...$args
-  if ($args | first | default "") == "go" and ($args | length) > 1 {
-    let branch = ($args | get 1)
-    let path = (^work path $branch | str trim)
-    if ($path | path exists) {
-      cd $path
-    }
-  }
+# Main entry point
+def --env work [
+  command?: string  # Command to run (go, list, ls, switch, sw, path, delete, prune)
+  ...args: string   # Additional arguments
+] {
+  # Implementation
 }
 ```
 
-The `work path <branch>` command returns the worktree path for scripting:
-```bash
-# Check if worktree exists
-if [[ -d "$(work path my-feature)" ]]; then
-  echo "Worktree exists"
-fi
-```
+Use subcommands pattern or match on the command argument.
 
 ## Runtime Dependencies
 
 - `git` - for worktree management
 - `gh` - GitHub CLI for PR status (optional but recommended)
+- `fzf` or `sk` - for fuzzy selection (use whichever is available)
 
 ## Example Usage
 
-```sh
-# Start working on a new feature (shell wrapper handles cd)
+```nu
+# Start working on a new feature
 work go mz-new-feature
 
 # List all worktrees with status
@@ -145,15 +124,10 @@ work prune
 work delete old-branch
 ```
 
-## Technical Requirements
+## Technical Notes
 
-- Language: Rust
-- Use `clap` v4 with derive macros for CLI parsing
-- Use `tokio` for async runtime and parallel PR fetching
-- Use `skim` for interactive fuzzy selection
-- Use `colored` for terminal colors
-- Use `git2` or shell out to `git` for git operations
-- Use `chrono` or `humantime` for relative time formatting
-- Shell out to `gh` CLI for GitHub API calls
-- The binary name must be `work`
-- Compile with `cargo build --release`
+- Use `git worktree list --porcelain` for parsing worktree info
+- Use `gh pr list --json` for structured PR data
+- Use `par-each` for parallel operations
+- Handle edge cases: no worktrees, missing gh CLI, no fzf/sk
+- The script should work when sourced: `source work.nu`

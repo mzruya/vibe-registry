@@ -1,13 +1,8 @@
 # Work - Git Worktree Manager
 
-Generate shell-specific scripts that manage git worktrees for parallel branch development with GitHub PR status integration. You must create **four separate files**, one for each shell:
+Generate a shell script called `work` that manages git worktrees for parallel branch development with GitHub PR status integration.
 
-1. `work.bash` - Bash implementation
-2. `work.zsh` - Zsh implementation
-3. `work.fish` - Fish implementation
-4. `work.nu` - Nushell implementation
-
-Each script must implement the same functionality but use idiomatic patterns for its shell. The installer will pick the appropriate script based on the user's shell.
+**Important:** Detect the user's current shell (bash, zsh, fish, or nushell) and generate the script using idiomatic patterns for that shell. The script must be sourceable to allow directory changes in the calling shell.
 
 ## Overview
 
@@ -58,10 +53,7 @@ Uses `gh pr list` to fetch PR information for each branch:
 - CI status checks with pass/fail/pending counts
 
 ### Parallel Fetching
-Fetches PR info for all worktrees concurrently where the shell supports it:
-- **Nushell:** Use `par-each`
-- **Bash/Zsh:** Use background jobs (`&`) with `wait`, or sequential if simpler
-- **Fish:** Use `&` with `wait`, or sequential if simpler
+Fetches PR info for all worktrees concurrently where the shell supports it (e.g., `par-each` in nushell, background jobs in bash/zsh/fish).
 
 ### Color Coding
 Use ANSI codes for colors:
@@ -95,47 +87,18 @@ Shows CI status as icon + count:
 
 ## Script Structure
 
-Each script must be sourceable (not a standalone executable) because it needs to change the calling shell's directory.
+The script must be sourceable (not a standalone executable) because it needs to change the calling shell's directory. Define a `work` function using idiomatic patterns for the detected shell:
 
-### Bash/Zsh (`work.bash`, `work.zsh`)
-```bash
-# Main entry point - function that modifies current shell
-work() {
-  local command="${1:-}"
-  shift 2>/dev/null || true
-  # Implementation using case statement
-}
-```
-
-### Fish (`work.fish`)
-```fish
-# Main entry point - function that modifies current shell
-function work
-  set -l command $argv[1]
-  set -e argv[1]
-  # Implementation using switch statement
-end
-```
-
-### Nushell (`work.nu`)
-```nu
-# Main entry point - --env allows directory changes
-def --env work [
-  command?: string  # Command to run (go, list, ls, switch, sw, path, delete, prune)
-  ...args: string   # Additional arguments
-] {
-  # Implementation using match
-}
-```
-
-Use idiomatic patterns for each shell (case/switch statements, shell-specific parallel execution, etc.).
+- **Bash/Zsh:** `work() { ... }` function with case statement
+- **Fish:** `function work ... end` with switch statement
+- **Nushell:** `def --env work [...] { ... }` with match expression
 
 ## Runtime Dependencies
 
 - `git` - for worktree management
 - `gh` - GitHub CLI for PR status (optional but recommended)
 - `fzf` or `sk` - for fuzzy selection (use whichever is available)
-- `jq` - for JSON parsing (required for bash/zsh/fish, not needed for nushell)
+- `jq` - for JSON parsing (bash/zsh/fish only; nushell has native JSON support)
 
 ## Example Usage
 
@@ -158,25 +121,7 @@ work delete old-branch
 
 ## Technical Notes
 
-### All Shells
 - Use `git worktree list --porcelain` for parsing worktree info
 - Use `gh pr list --json` for structured PR data
 - Handle edge cases: no worktrees, missing gh CLI, no fzf/sk
-- Scripts must be sourceable (not standalone executables)
-
-### Shell-Specific Patterns
-
-**Bash/Zsh:**
-- Use `&` and `wait` for parallel operations, or sequential if simpler
-- Parse JSON with `jq` (required dependency)
-- Source with: `source work.bash` or `source work.zsh`
-
-**Fish:**
-- Use `fish_add_path` patterns if needed
-- Parse JSON with `jq` or fish's string manipulation
-- Source with: `source work.fish`
-
-**Nushell:**
-- Use `par-each` for parallel operations
-- Native structured data handling (no jq needed)
-- Source with: `source work.nu`
+- The script must be sourceable (e.g., `source work`)
